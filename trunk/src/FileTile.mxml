@@ -39,27 +39,6 @@
 						layout="absolute" xmlns:local="*"
 						showFlexChrome="false"
 						applicationComplete="onApplicationComplete();" backgroundColor="#333333">
-
-	<mx:Style>
-		Alert {
-			color : #ffffff;
-			border-thickness: 1;
-			drop-shadow-enabled: false;
-			background-color: #333333;
-			corner-radius :6;
-			border-style :solid;
-			header-colors : #222222, #222222;
-			footer-colors : #222222, #222222;
-			border-color : #000000;
-			modalTransparencyColor: #333333;
-		}
-		
-		Button {
-			background-color: #000000;
-			color: #ffffff;
-		}
-		
-	</mx:Style>
 	
 	<mx:Script>
 		<![CDATA[
@@ -84,7 +63,6 @@
 			private var fileList:Array;
 			private var currentVolumeNativePath:String;
 			private var selectedTiles:ArrayCollection;
-			private var currentStorageVolume:StorageVolume;
 			private var fileIndex:uint;
 
 			private function onApplicationComplete():void
@@ -119,23 +97,14 @@
 
 			private function onVolumeMount(e:StorageVolumeChangeEvent):void
 			{
-				if (this.currentStorageVolume == null)
+				if (e.storageVolume.isRemovable)
 				{
-					NativeWindow(NativeApplication.nativeApplication.openedWindows[0]).activate();
-					this.currentStorageVolume = e.storageVolume;
-					Alert.show("Browse " + this.currentStorageVolume.name + "?", "Storage Device Detected", Alert.YES|Alert.NO, null, onVolumeSelected);
-				}
-			}
-
-			private function onVolumeSelected(e:CloseEvent):void
-			{
-				if (e.detail == Alert.YES)
-				{
-					this.targetVolume = this.currentStorageVolume.rootDirectory;
-					this.currentVolumeNativePath = this.currentStorageVolume.rootDirectory.nativePath;
+					this.nativeWindow.activate();
+					this.volumeName.text = e.storageVolume.name;
+					this.targetVolume = e.storageVolume.rootDirectory;
+					this.currentVolumeNativePath = this.targetVolume.nativePath;
 					this.start();
 				}
-				this.currentStorageVolume = null;
 			}
 
 			private function onVolumeUnmount(e:StorageVolumeChangeEvent):void
@@ -198,6 +167,7 @@
 				this.previousButton.enabled = false;
 				this.nextButton.enabled = false;
 				this.board.removeAllChildren();
+				this.volumeName.text = "";
 			}
 
 			private function layoutFiles():void
@@ -547,15 +517,44 @@
 				this.layoutFiles();
 			}
 
+			private function onRestore():void
+			{
+				if (this.nativeWindow.displayState == NativeWindowDisplayState.MAXIMIZED)
+				{
+					this.nativeWindow.restore();
+					restoreButton.toolTip = "Maximize Application";
+				}
+				else
+				{
+					this.nativeWindow.maximize();
+					restoreButton.toolTip = "Restore Application";
+				}
+			}
+
 		]]>
 	</mx:Script>
-	<mx:ViewStack id="mainView" width="100%" height="100%" creationPolicy="all">
-		<mx:Tile id="board" width="100%" height="100%" top="5" left="5"/>
-		<mx:Box id="instructionBox" width="100%" height="100%" verticalAlign="middle" horizontalAlign="center">
-			<mx:Text id="instructions" width="700" height="300" textAlign="center" color="#ffffff" fontSize="50" fontWeight="bold"/>
-		</mx:Box>
-	</mx:ViewStack>
+	<mx:Style source="assets/stylesheet.css" />
+	<mx:VBox width="100%" height="100%" horizontalAlign="center" verticalGap="0" horizontalGap="0">
+		<mx:Canvas id="appTitleBar" width="100%" height="35" styleName="titleBar" mouseDown="nativeWindow.startMove();" doubleClickEnabled="true" doubleClick="nativeWindow.minimize();" verticalScrollPolicy="off" horizontalScrollPolicy="off">
+			<mx:Image source="@Embed('/assets/logo_small.png')" top="3" left="5"/>
+			<mx:Label text="File" styleName="appTitleFirst" top="8" left="37"/>
+			<mx:Label text="Tile" styleName="appTitleSecond" top="8" left="70"/>
+			<mx:Button styleName="appCloseButton" click="this.nativeWindow.close();" toolTip="Close Application" right="9" top="10"/>
+			<mx:Button id="restoreButton" styleName="appRestoreButton" click="onRestore();" toolTip="Maximize Application" right="23" top="10"/>
+			<mx:Button styleName="appMinimizeButton" click="this.nativeWindow.minimize()" toolTip="Minimize Application" right="36" top="10"/>
+			<mx:VBox width="100%" horizontalAlign="center" verticalAlign="middle" top="8">
+				<mx:Label id="volumeName" text="" styleName="volumeName"/>
+			</mx:VBox>
+		</mx:Canvas>
+		<mx:ViewStack id="mainView" width="100%" height="100%" creationPolicy="all">
+			<mx:Tile id="board" width="100%" height="100%" paddingTop="5" paddingLeft="5"/>
+			<mx:Box id="instructionBox" width="100%" height="100%" verticalAlign="middle" horizontalAlign="center">
+				<mx:Text id="instructions" width="700" height="300" textAlign="center" color="#ffffff" fontSize="50" fontWeight="bold"/>
+			</mx:Box>
+		</mx:ViewStack>
+	</mx:VBox>
 	<mx:Button label="Previous" id="previousButton" left="5" bottom="5" click="onPrevious();" enabled="false"/>
 	<mx:Button label="Next" id="nextButton" right="5" bottom="5" click="onNext();" enabled="false"/>
+	<mx:Button id="appGripper" styleName="appGripper" bottom="1" right="1" mouseDown="nativeWindow.startResize(NativeWindowResize.BOTTOM_RIGHT);"/>
 	<mx:SWFLoader id="progressCircle" source="{progressSWF}" height="300" width="300" x="{(this.width/2)-150}" y="{(this.height/2)-150}" alpha=".50" visible="false"/>
 </mx:WindowedApplication>
