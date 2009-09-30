@@ -165,7 +165,7 @@
 			private function drawSelection(e:Event=null):void
 			{
 				this.graphics.clear();
-				this.graphics.beginFill(0xffff00, .5);
+				this.graphics.beginFill(0xdb5800, .5);
 				this.graphics.drawRoundRectComplex(0, 0, this.width, this.height, 10, 10, 10, 10);
 				this.graphics.endFill();
 				if (this.deleted)
